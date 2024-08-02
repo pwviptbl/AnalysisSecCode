@@ -3,9 +3,7 @@ import sys
 import os
 
 def determine_file_type(file_path):
-    # Obtém a extensão do arquivo
     _, ext = os.path.splitext(file_path)
-    # Converte para minúsculas
     ext = ext.lower()
     if ext == '.js':
         return 'js'
@@ -27,31 +25,26 @@ def run_analysis(file_path, file_type):
         log_error("Tipo de arquivo não suportado. Use um arquivo com extensão '.js' ou '.php'.")
         return
     
-    # Caminho absoluto para o diretório raiz do projeto
     project_root = os.path.dirname(os.path.abspath(__file__))
     script_path = os.path.join(project_root, script_name)
     vulnerabilities_path = os.path.join(project_root, vulnerabilities_file)
     report_path = os.path.join(project_root, 'report', report_name)
     error_path = os.path.join(project_root, 'report', 'erro.txt')
     
-    # Criação da pasta report se não existir
     os.makedirs(os.path.dirname(report_path), exist_ok=True)
 
-    # Verificar se o arquivo de vulnerabilidades existe
     if not os.path.isfile(vulnerabilities_path):
         log_error(f"Arquivo de vulnerabilidades não encontrado: {vulnerabilities_path}")
         return
 
     try:
-        # Executar o script de análise
         result = subprocess.run(['python', script_path, file_path], capture_output=True, text=True, check=True)
         report_content = result.stdout
     except subprocess.CalledProcessError as e:
-        log_error(f"Erro ao executar o script: {e}")
-        report_content = f"Erro ao executar o script: {e}"
+        log_error(f"Erro ao executar o script: {e}\nSaída de erro: {e.stderr}")
+        report_content = f"Erro ao executar o script: {e}\nSaída de erro: {e.stderr}"
     
-    # Adicionar mensagem ao final do relatório
-    with open(report_path, 'a') as f:
+    with open(report_path, 'w') as f:
         f.write(f"Relatório gerado para o arquivo: {file_path}\n")
         f.write(report_content)
         f.write("\n")

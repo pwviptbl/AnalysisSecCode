@@ -1,14 +1,16 @@
 import json
 import sys
 import os
+import subprocess
 
 def analyze_php(file_path):
     vulnerabilities = []
     try:
-        with open(file_path, 'r') as f:
-            code = f.read()
+        #with open(file_path, 'r') as f:
+        #    code = f.read()
+        result = subprocess.run(['php', 'analyzers/parse.php', file_path], capture_output=True, text=True, check=True)
+        code = result.stdout
         
-        # Lê as vulnerabilidades do arquivo JSON
         vulnerabilities_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Vul', 'php_vulnerabilities.json')
         with open(vulnerabilities_file, 'r') as f:
             vulns = json.load(f)
@@ -19,7 +21,10 @@ def analyze_php(file_path):
         
         if not vulnerabilities:
             vulnerabilities.append("Nenhuma vulnerabilidade detectada.")
-        
+    
+    except subprocess.CalledProcessError as e:
+        log_error(f"Erro ao executar parse-php: {e}")
+        vulnerabilities.append(f"Erro ao executar parse-php: {e}")
     except Exception as e:
         log_error(f"Erro ao analisar o código PHP: {e}")
         vulnerabilities.append(f"Erro ao analisar o código PHP: {e}")

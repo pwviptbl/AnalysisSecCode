@@ -1,3 +1,2 @@
-venv\Scripts\activate
-source venv/bin/activate
+composer install
 pip install esprima
