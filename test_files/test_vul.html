@@ -1,18 +1,13 @@
-<?php
-
-function test($var) {
-mysql_query();
-    echo $var;
-}
-
-test('Hello World');
-
-// Exemplo de código PHP com vulnerabilidades
-eval('echo "Hello World";'); // vulnerabilidade: uso de eval
-
-$command = 'ls';
-exec($command); // vulnerabilidade: uso de exec?>
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Vulnerabilidade</title>
+</head>
+<body>
+    <h1>Teste de Vulnerabilidade em JavaScript</h1>
+    <script>
         // Exemplo de vulnerabilidade: JavaScript inseguro (XSS)
         function showAlert(userInput) {
             alert("User input: " + userInput);
@@ -27,3 +22,5 @@ exec($command); // vulnerabilidade: uso de exec?>
         showAlert("<script>alert('XSS Attack');</script>");
         evaluateCode("alert('Eval Attack');");
     </script>
+</body>
+</html>

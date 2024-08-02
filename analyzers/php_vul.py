@@ -1,51 +1,52 @@
+import re
 import json
 import sys
-import os
 import subprocess
 
-def analyze_php(file_path):
-    vulnerabilities = []
-    try:
-        #with open(file_path, 'r') as f:
-        #    code = f.read()
-        result = subprocess.run(['php', 'analyzers/parse.php', file_path], capture_output=True, text=True, check=True)
-        code = result.stdout
-        
-        vulnerabilities_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Vul', 'php_vulnerabilities.json')
-        with open(vulnerabilities_file, 'r') as f:
-            vulns = json.load(f)
-        
-        for vuln in vulns:
-            if vuln['pattern'] in code:
-                vulnerabilities.append(f"Vulnerabilidade encontrada: {vuln['name']}, Mensagem: {vuln['message']}, Nível: {vuln['severity']}")
-        
-        if not vulnerabilities:
-            vulnerabilities.append("Nenhuma vulnerabilidade detectada.")
-    
-    except subprocess.CalledProcessError as e:
-        log_error(f"Erro ao executar parse-php: {e}")
-        vulnerabilities.append(f"Erro ao executar parse-php: {e}")
-    except Exception as e:
-        log_error(f"Erro ao analisar o código PHP: {e}")
-        vulnerabilities.append(f"Erro ao analisar o código PHP: {e}")
-    
-    return '\n'.join(vulnerabilities)
+def analyze_code(php_code, vulnerabilities):
+    results = []
 
-def log_error(message):
-    error_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'report', 'erro.txt')
-    with open(error_path, 'a') as f:
-        f.write(message + '\n')
+    for vul in vulnerabilities:
+        pattern_str = vul.get('pattern', '')
+        try:
+            pattern = re.compile(pattern_str)
+        except re.error as e:
+            print(f"Erro ao compilar a expressão regular '{pattern_str}': {e}", file=sys.stderr)
+            continue
 
-if __name__ == '__main__':
+        for match in pattern.finditer(php_code):
+            results.append({
+                'vulnerability': vul.get('vulnerability', 'Desconhecida'),
+                'message': vul.get('message', 'Nenhuma mensagem disponível'),
+                'severity': vul.get('severity', 'Desconhecida'),
+                'line': php_code.count('\n', 0, match.start()) + 1,
+                'context': php_code[max(0, match.start() - 30):match.end() + 30]
+            })
+
+    return results
+
+def main():
     if len(sys.argv) != 2:
-        log_error("Uso: python php_vul.py <caminho_do_arquivo>")
+        print("Uso: python php_vul.py <caminho_do_arquivo>")
         sys.exit(1)
-    
+
     file_path = sys.argv[1]
-    try:
-        report = analyze_php(file_path)
-        print(report)
-    except Exception as e:
-        log_error(f"Erro ao executar a análise: {e}")
-        print(f"Erro ao executar a análise: {e}", file=sys.stderr)
-        sys.exit(1)
+    
+    with open(file_path, 'r') as file:
+        php_code = file.read()
+
+    with open('Vul/php_vulnerabilities.json', 'r') as file:
+        vulnerabilities = json.load(file)
+
+    results = analyze_code(php_code, vulnerabilities)
+
+    for result in results:
+        print(f"Vulnerabilidade: {result['vulnerability']}")
+        print(f"Mensagem: {result['message']}")
+        print(f"Severidade: {result['severity']}")
+        print(f"Linha: {result['line']}")
+        print(f"Código: {result['context']}")
+        print()
+
+if __name__ == "__main__":
+    main()

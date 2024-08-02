@@ -1,45 +1,16 @@
-[ 
+ [
     {
-        "name": "Cross-Site Scripting",
-        "pattern": "echo",
+        "vulnerability": "Cross-Site Scripting",
+        "pattern": "echo\\s+.*;|eval\\s*\\(.*\\)|document\\.write",
         "message": "Possível vulnerabilidade de XSS detectada.",
         "severity": "média"
     },
     {
-        "name": "TESTE",
-        "pattern": "eval(",
-        "message": "Uso de eval detectado, pode ser uma vulnerabilidade de execução de código.",
-        "severity": "Média"
-    },
-    {
-        "name": "SQL Injection",
-        "pattern": "mysql_",
+        "vulnerability": "SQL Injection",
+        "pattern": "mysql_query\\(|exec\\(|shell_exec\\(|passthru\\(|system\\(",
         "message": "Funções mysql_ detectadas, use mysqli ou PDO para evitar SQL Injection.",
         "severity": "Alta"
-    },
-    {
-        "name": "TESTE",
-        "pattern": "exec(",
-        "message": "Uso da função exec - pode executar comandos do sistema. Verifique se a entrada é segura.",
-        "severity": "Alta"
-    },
-    {
-        "name": "TESTE",
-        "pattern": "shell_exec(",
-        "message": "Uso da função shell_exec - pode executar comandos do shell. Verifique se a entrada é segura.",
-        "severity": "Alta"
-    },
-    {
-        "name": "TESTE",
-        "pattern": "passthru(",
-        "message": "Uso da função passthru - pode executar comandos do sistema. Evite usar se possível.",
-        "severity": "Média"
-    },
-    {
-        "name": "TESTE",
-        "pattern": "system(",
-        "message": "Uso da função system - pode executar comandos do sistema. Verifique a segurança da entrada.",
-        "severity": "Alta"
     }
-]
+]    
+
 

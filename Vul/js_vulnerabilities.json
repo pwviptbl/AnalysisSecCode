@@ -1,20 +1,14 @@
 [
     {
-        "name": "Cross-Site Scripting",
-        "pattern": "document.write",
-        "message": "Uso de document.write pode levar a vulnerabilidades de XSS.",
+        "vulnerability": "XSS",
+        "pattern": "alert\\(",
+        "message": "Uso potencialmente inseguro da função alert().",
         "severity": "alta"
     },
     {
-        "name": "Eval",
-        "pattern": "eval(",
-        "message": "Uso de eval pode causar execução de código malicioso.",
+        "vulnerability": "Eval",
+        "pattern": "eval\\(",
+        "message": "Uso potencialmente inseguro da função eval().",
         "severity": "alta"
-    },
-    {
-        "name": "Untrusted Data",
-        "pattern": "innerHTML",
-        "message": "Uso de innerHTML pode levar a vulnerabilidades de XSS.",
-        "severity": "média"
     }
 ]
