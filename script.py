@@ -75,41 +75,46 @@ class AnalisadorEstatico:
         self.relatorio.gerar_pdf(f"{report_name_base}.pdf")
         print(f"Relatórios gerados com sucesso na pasta: {self.relatorio.output_dir}")
 
+# Bloco de execução principal (simula a interface de linha de comando ou CI/CD)
 if __name__ == "__main__":
     vul_config_json_path = os.path.join(os.path.dirname(__file__), 'Vul', 'php_vulnerabilities.json')
     output_report_dir = "report"
     analisador = AnalisadorEstatico(vul_config_json_path, output_dir=output_report_dir)
 
-    # --- SIMULAÇÃO DE USO ---
+    file_paths_to_analyze = []
+    generate_reports_final = True # Valor padrão para a análise
 
-    # Adicionar um argumento opcional para controle de relatório via terminal
-    # Ex: python script.py <caminho_do_arquivo> --no-report
-    # Ex: python script.py <caminho_do_arquivo> --report (comportamento padrão)
-    
-    generate_reports_cli = True
-    file_paths_cli = []
-
+    # 1. Processar argumentos da linha de comando
     if len(sys.argv) > 1:
+        # Verifica a opção --no-report
         if "--no-report" in sys.argv:
-            generate_reports_cli = False
-            sys.argv.remove("--no-report") # Remove para não ser interpretado como path
-        # Se tiver "--report" e for explícito, também pode ser tratado
-        # if "--report" in sys.argv:
-        #    generate_reports_cli = True
-        #    sys.argv.remove("--report")
+            generate_reports_final = False
+            sys.argv.remove("--no-report")
 
-        file_paths_cli = sys.argv[1:] # Pega todos os argumentos restantes como caminhos
+        # Pega os caminhos dos arquivos restantes
+        file_paths_to_analyze = sys.argv[1:]
 
-        if not file_paths_cli: # Se não houver arquivos depois de remover a opção
-            print("Uso: python script.py <caminho_do_arquivo> [--no-report]")
+        if not file_paths_to_analyze:
+            print("Uso: python script.py <caminho_do_arquivo> [caminho_do_outro_arquivo...] [--no-report]")
             sys.exit(1)
 
-        print(f"Modo de linha de comando: Analisando {len(file_paths_cli)} arquivo(s).")
-        analisador.analisar_multiplos_arquivos_php(file_paths_cli, generate_reports=generate_reports_cli)
+        print(f"Modo de linha de comando: Analisando {len(file_paths_to_analyze)} arquivo(s).")
     else:
+        # Modo de teste padrão (sem argumentos): Analisa o arquivo de teste_vul.php
         print("Modo de teste padrão: Analisando 'test_files/test_vul.php'.")
         test_file_path = os.path.join(os.path.dirname(__file__), 'test_files', 'test_vul.php')
-        # No modo de teste padrão via script.py, geralmente queremos o relatório
-        analisador.analisar_multiplos_arquivos_php([test_file_path], generate_reports=True) 
+        file_paths_to_analyze = [test_file_path]
+        
+        # 2. SE não houver argumentos de linha de comando para relatórios, PERGUNTAR ao usuário
+        resposta = input("Deseja gerar relatórios HTML/PDF? (s/n): ").lower().strip()
+        if resposta == 'n':
+            generate_reports_final = False
+        elif resposta != 's':
+            print("Resposta inválida. Assumindo 'sim' para a geração de relatórios.")
+            generate_reports_final = True # Valor padrão se a resposta não for 's' ou 'n'
+
+
+    # Executa a análise com base nos arquivos e na decisão de gerar relatórios
+    analisador.analisar_multiplos_arquivos_php(file_paths_to_analyze, generate_reports=generate_reports_final)
         
     print("\nAnálise concluída.")
