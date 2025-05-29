@@ -1,2 +1,13 @@
-/vendor
-/venv
+# Ignorar pasta de relatórios
+report/
+report_test/
+
+# Ignorar arquivos Python de cache e ambiente virtual
+__pycache__/
+*.pyc
+.venv/
+venv/
+.Python/
+
+# Ignorar arquivos do ambiente de desenvolvimento
+.vscode/

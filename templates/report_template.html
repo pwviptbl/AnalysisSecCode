@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report_title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; text-align: center; }
+        .vulnerability { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .vulnerability h2 { color: #0056b3; margin-top: 0; }
+        .vulnerability p { margin: 5px 0; }
+        .severity-Critica { color: red; font-weight: bold; }
+        .severity-Alta { color: darkred; font-weight: bold; }
+        .severity-Média { color: orange; font-weight: bold; }
+        .severity-Baixa { color: blue; }
+        .severity-Informativa { color: green; }
+        code { background-color: #eee; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>{{ report_title }}</h1>
+    {% if vulnerabilities %}
+        {% for vul in vulnerabilities %}
+            <div class="vulnerability">
+                <h2>{{ vul.type }}</h2>
+                <p><strong>Severidade:</strong> <span class="severity-{{ vul.severity | replace(' ', '-') }}">{{ vul.severity }}</span></p>
+                <p><strong>Linha:</strong> {{ vul.line }}</p>
+                <p><strong>Descrição:</strong> {{ vul.description }}</p>
+                <p><strong>Trecho de Código:</strong> <code>{{ vul.code_snippet }}</code></p>
+                <p><strong>Sugestão de Correção:</strong> {{ vul.suggestion }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Nenhuma vulnerabilidade encontrada.</p>
+    {% endif %}
+</body>
+</html>
