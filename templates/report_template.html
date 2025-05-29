@@ -7,6 +7,7 @@
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: #333; text-align: center; }
+        p.report-datetime { text-align: center; font-style: italic; color: #666; }
         .vulnerability { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
         .vulnerability h2 { color: #0056b3; margin-top: 0; }
         .vulnerability p { margin: 5px 0; }
@@ -20,11 +21,13 @@
 </head>
 <body>
     <h1>{{ report_title }}</h1>
+    <p class="report-datetime">Gerado em: {{ report_datetime }}</p>
     {% if vulnerabilities %}
         {% for vul in vulnerabilities %}
             <div class="vulnerability">
                 <h2>{{ vul.type }}</h2>
                 <p><strong>Severidade:</strong> <span class="severity-{{ vul.severity | replace(' ', '-') }}">{{ vul.severity }}</span></p>
+                <p><strong>Arquivo:</strong> {{ vul.file_name }}</p> {# CORRIGIDO: Usa o novo atributo file_name #}
                 <p><strong>Linha:</strong> {{ vul.line }}</p>
                 <p><strong>Descrição:</strong> {{ vul.description }}</p>
                 <p><strong>Trecho de Código:</strong> <code>{{ vul.code_snippet }}</code></p>

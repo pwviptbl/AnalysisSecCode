@@ -1,12 +1,9 @@
 import re
 import sys
-
-# Importa a classe Configuracao do arquivo config.py no diretório raiz
 from config import Configuracao
-# Importa a classe Vulnerability do novo arquivo analyzers/vulnerability.py
 from analyzers.vulnerability import Vulnerability
 
-class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade inicial, mas será atualizado
+class VulnerabilidadeDetector:
     """
     Detecta vulnerabilidades em código PHP utilizando padrões definidos na configuração.
     """
@@ -20,10 +17,8 @@ class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade ini
         e as armazena em um dicionário para uso eficiente.
         """
         compiled = {}
-        # Usamos get_all_vulnerability_patterns() que retorna uma lista de dicionários
-        # cada um com os detalhes da vulnerabilidade.
         for details in self.configuracao.get_all_vulnerability_patterns():
-            vul_name = details.get('vulnerability', 'Desconhecida') # Pegar o nome da vulnerabilidade
+            vul_name = details.get('vulnerability', 'Desconhecida') 
             pattern_str = details.get('pattern', '')
             if pattern_str:
                 try:
@@ -34,7 +29,7 @@ class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade ini
                 print(f"Aviso: Padrão regex não encontrado para a vulnerabilidade '{vul_name}'.", file=sys.stderr)
         return compiled
 
-    def analyze_php_code(self, php_code: str) -> list[Vulnerability]:
+    def analyze_php_code(self, php_code: str, file_path: str) -> list[Vulnerability]:
         """
         Analisa o código PHP fornecido em busca de vulnerabilidades.
         Retorna uma lista de objetos Vulnerability encontrados.
@@ -43,7 +38,6 @@ class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade ini
         lines = php_code.splitlines()
 
         for vul_name, compiled_pattern in self.compiled_patterns.items():
-            # Obtém os detalhes completos da vulnerabilidade da configuração para mensagem e sugestão
             vul_details = self.configuracao.get_vulnerability_pattern(vul_name)
             
             message = vul_details.get('message', 'Nenhuma mensagem disponível')
@@ -51,8 +45,6 @@ class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade ini
             suggestion = vul_details.get('suggestion', 'Consulte a documentação de segurança para correção.')
 
             for i, line_content in enumerate(lines):
-                # Importante: O PlantUML não suporta list[Vulnerability] em type hints diretamente na imagem,
-                # mas é boa prática para o código Python.
                 for match in compiled_pattern.finditer(line_content):
                     line_number = i + 1
                     code_snippet = line_content.strip() 
@@ -64,7 +56,8 @@ class VulnerabilidadeDetector: # Nome da classe mantido para compatibilidade ini
                             severity=severity,
                             line=line_number,
                             code_snippet=code_snippet,
-                            suggestion=suggestion
+                            suggestion=suggestion,
+                            file_path=file_path
                         )
                     )
         return found_vulnerabilities
