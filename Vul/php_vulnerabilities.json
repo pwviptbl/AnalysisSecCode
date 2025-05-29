@@ -1,16 +1,51 @@
- [
+[
     {
-        "vulnerability": "Cross-Site Scripting",
-        "pattern": "echo\\s+.*;|eval\\s*\\(.*\\)|document\\.write",
-        "message": "Possível vulnerabilidade de XSS detectada.",
-        "severity": "média"
+        "vulnerability": "Cross-Site Scripting (XSS)",
+        "pattern": "echo\\s*\\($_GET\\[.*?\\]\\)|echo\\s*\\($_POST\\[.*?\\]\\)|echo\\s*\\($_REQUEST\\[.*?\\]\\)|print\\s*\\($_GET\\[.*?\\]\\)|print\\s*\\($_POST\\[.*?\\]\\)|print\\s*\\($_REQUEST\\[.*?\\]\\)|\\$\\s*_GET\\[.*?\\]\\s*\\=|\\$\\s*_POST\\[.*?\\]\\s*\\=|\\$\\s*_REQUEST\\[.*?\\]\\s*\\=",
+        "message": "Saída de dados de entrada do usuário sem sanitização ou escape adequado.",
+        "severity": "Média",
+        "suggestion": "Sempre utilize htmlspecialchars() ou htmlentities() ao exibir dados fornecidos pelo usuário em páginas HTML. Considere Content Security Policy (CSP)."
     },
     {
         "vulnerability": "SQL Injection",
-        "pattern": "mysql_query\\(|exec\\(|shell_exec\\(|passthru\\(|system\\(",
-        "message": "Funções mysql_ detectadas, use mysqli ou PDO para evitar SQL Injection.",
-        "severity": "Alta"
+        "pattern": "mysql_query\\(|mysqli_query\\(.*\\$(_GET|_POST|_REQUEST)\\[.*?\\]\\)|PDO::query\\(.*\\$(_GET|_POST|_REQUEST)\\[.*?\\]\\)|pg_query\\(.*\\$(_GET|_POST|_REQUEST)\\[.*?\\]\\)",
+        "message": "Uso de funções de banco de dados com entrada de usuário sem tratamento adequado, propenso a SQL Injection.",
+        "severity": "Alta",
+        "suggestion": "Utilize Prepared Statements (PDO com parâmetros ou MySQLi com bind_param) e evite concatenar diretamente entrada do usuário em consultas SQL."
+    },
+    {
+        "vulnerability": "Code Injection (eval/exec)",
+        "pattern": "eval\\s*\\(|exec\\s*\\(|shell_exec\\s*\\(|passthru\\s*\\(|system\\s*\\(|proc_open\\s*\\(|`.*`",
+        "message": "Uso de funções que permitem execução de código ou comandos do sistema operacional com entrada potencialmente maliciosa.",
+        "severity": "Crítica",
+        "suggestion": "Evite o uso de eval() e funções de execução de comando. Se for estritamente necessário, valide e sanitize rigorosamente todas as entradas e considere alternativas mais seguras como escapeshellarg() e escapeshellcmd()."
+    },
+    {
+        "vulnerability": "Local/Remote File Inclusion (LFI/RFI)",
+        "pattern": "include\\s*\\($_GET\\[.*?\\]\\)|require\\s*\\($_GET\\[.*?\\]\\)|include_once\\s*\\($_GET\\[.*?\\]\\)|require_once\\s*\\($_GET\\[.*?\\]\\)",
+        "message": "Inclusão de arquivos com base em entrada do usuário, pode levar à execução de código arbitrário.",
+        "severity": "Alta",
+        "suggestion": "Evite incluir arquivos dinamicamente com base em entrada do usuário. Se for essencial, utilize uma whitelist de arquivos permitidos e valide rigorosamente a entrada."
+    },
+    {
+        "vulnerability": "Insecure Deserialization",
+        "pattern": "unserialize\\s*\\(.*\\)",
+        "message": "Uso da função unserialize(), que pode levar à execução de código remoto se dados não confiáveis forem desserializados.",
+        "severity": "Crítica",
+        "suggestion": "Evite desserializar dados de fontes não confiáveis. Se for necessário, considere formatos mais seguros como JSON e, se for usar serialize/unserialize, implemente medidas de segurança como 'phar://' wrappers e validação forte."
+    },
+    {
+        "vulnerability": "Weak Hashing Function",
+        "pattern": "md5\\s*\\(|sha1\\s*\\(",
+        "message": "Uso de funções de hash fracas (MD5, SHA1) para senhas ou dados sensíveis.",
+        "severity": "Média",
+        "suggestion": "Para senhas, utilize funções de hash criptográficas fortes e com 'salt' como password_hash() (com bcrypt, argon2id). Para integridade de dados, considere SHA256 ou superior."
+    },
+    {
+        "vulnerability": "Direct Object Reference (IDOR)",
+        "pattern": "\\$(_GET|_POST|_REQUEST)\\[['\"]id['\"]\\]|\\$(_GET|_POST|_REQUEST)\\[['\"]user_id['\"]\\]",
+        "message": "Acesso direto a objetos/recursos usando IDs da URL ou formulário sem verificação de autorização.",
+        "severity": "Média",
+        "suggestion": "Sempre implemente verificações de autorização robustas para garantir que o usuário tenha permissão para acessar o recurso solicitado, mesmo que o ID esteja presente na requisição."
     }
-]    
-
-
+]
