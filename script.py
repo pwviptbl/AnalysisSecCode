@@ -43,15 +43,25 @@ class AnalisadorEstatico:
         else:
             print(f"Nenhuma vulnerabilidade encontrada em {file_path}.")
 
-    def analisar_multiplos_arquivos_php(self, file_paths: list):
+    def analisar_multiplos_arquivos_php(self, file_paths: list, generate_reports: bool = True) -> list: # NOVO PARÂMETRO E RETORNO
         """
         Analisa uma lista de arquivos PHP em busca de vulnerabilidades.
+        Se generate_reports for True, gera os relatórios HTML/PDF.
+        Retorna a lista de todas as vulnerabilidades encontradas.
         """
         self.relatorio.vulnerabilities = []
         for file_path in file_paths:
             self.analisar_arquivo_php(file_path)
         
-        self._gerar_relatorios_finais()
+        # Gerar relatórios SOMENTE se generate_reports for True E se houver vulnerabilidades
+        if generate_reports and self.relatorio.get_vulnerabilities():
+            self._gerar_relatorios_finais()
+        elif not self.relatorio.get_vulnerabilities():
+            print("Nenhuma vulnerabilidade encontrada. Relatórios não gerados.")
+        else:
+            print("Opção 'gerar relatórios' desativada. Relatórios não gerados.")
+
+        return self.relatorio.get_vulnerabilities() # Retorna as vulnerabilidades para a GUI
 
     def _gerar_relatorios_finais(self):
         """
@@ -60,24 +70,46 @@ class AnalisadorEstatico:
         print("\nGerando relatórios...")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_name_base = f"analise_seguranca_{timestamp}"
+
         self.relatorio.gerar_html(f"{report_name_base}.html")
         self.relatorio.gerar_pdf(f"{report_name_base}.pdf")
-        print("Relatórios gerados com sucesso!")
+        print(f"Relatórios gerados com sucesso na pasta: {self.relatorio.output_dir}")
 
 if __name__ == "__main__":
     vul_config_json_path = os.path.join(os.path.dirname(__file__), 'Vul', 'php_vulnerabilities.json')
-    
     output_report_dir = "report"
-
     analisador = AnalisadorEstatico(vul_config_json_path, output_dir=output_report_dir)
 
+    # --- SIMULAÇÃO DE USO ---
+
+    # Adicionar um argumento opcional para controle de relatório via terminal
+    # Ex: python script.py <caminho_do_arquivo> --no-report
+    # Ex: python script.py <caminho_do_arquivo> --report (comportamento padrão)
+    
+    generate_reports_cli = True
+    file_paths_cli = []
+
     if len(sys.argv) > 1:
-        file_paths_to_analyze = sys.argv[1:]
-        print(f"Modo de linha de comando: Analisando {len(file_paths_to_analyze)} arquivo(s).")
-        analisador.analisar_multiplos_arquivos_php(file_paths_to_analyze)
+        if "--no-report" in sys.argv:
+            generate_reports_cli = False
+            sys.argv.remove("--no-report") # Remove para não ser interpretado como path
+        # Se tiver "--report" e for explícito, também pode ser tratado
+        # if "--report" in sys.argv:
+        #    generate_reports_cli = True
+        #    sys.argv.remove("--report")
+
+        file_paths_cli = sys.argv[1:] # Pega todos os argumentos restantes como caminhos
+
+        if not file_paths_cli: # Se não houver arquivos depois de remover a opção
+            print("Uso: python script.py <caminho_do_arquivo> [--no-report]")
+            sys.exit(1)
+
+        print(f"Modo de linha de comando: Analisando {len(file_paths_cli)} arquivo(s).")
+        analisador.analisar_multiplos_arquivos_php(file_paths_cli, generate_reports=generate_reports_cli)
     else:
         print("Modo de teste padrão: Analisando 'test_files/test_vul.php'.")
         test_file_path = os.path.join(os.path.dirname(__file__), 'test_files', 'test_vul.php')
-        analisador.analisar_multiplos_arquivos_php([test_file_path])
+        # No modo de teste padrão via script.py, geralmente queremos o relatório
+        analisador.analisar_multiplos_arquivos_php([test_file_path], generate_reports=True) 
         
-    print("\nAnálise concluída. Verifique a pasta de relatórios.")
+    print("\nAnálise concluída.")
