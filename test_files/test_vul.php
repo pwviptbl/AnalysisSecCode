@@ -1,19 +1,16 @@
 <?php
 
 function test($var) {
-    mysql_query(); // Essa aqui sera detectada
+    mysql_query();
     echo $var;
 }
 
 test('Hello World');
 
-// Exemplo de código PHP com vulnerabilidades
-eval('echo "Hello World";'); // vulnerabilidade: uso de eval
-
+eval('echo "Hello World";');
 $command = 'ls';
-exec($command); // vulnerabilidade: uso de exec
+exec($command);
 
-// Adicionando um novo ponto vulneravel para garantir que a mudanca seja pega
 $user_input = $_GET['name'];
-echo "Bem vindo, " . $user_input; // Possivel XSS
+echo "Bem vindo, " . $user_input;
 ?>
