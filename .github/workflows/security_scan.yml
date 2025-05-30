@@ -21,72 +21,51 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.13'
+        python-version: '3.13' # Sua versao do Python
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install Jinja2 reportlab
 
-    - name: Get changed PHP files (Using Git Diff) - DEBUG # ADICIONADO DEBUG
+    - name: Get changed PHP files (Using Git Diff)
       id: changed-php-files
       run: |
-        echo "## Debugging Git Diff ##"
-        echo "Event Name: ${{ github.event_name }}"
-        echo "Base Ref (for PRs): ${{ github.base_ref }}"
-        echo "Head Ref (for PRs): ${{ github.head_ref }}"
-        echo "SHA do commit atual (HEAD): ${{ github.sha }}"
-
         CHANGED_FILES=""
         
         if [ "${{ github.event_name }}" == "pull_request" ]; then
-          # Para PRs, comparamos com a base (branch para onde o PR será feito)
-          echo "Executando git diff para Pull Request..."
-          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD -- '*.php' | xargs)
+          BASE_REF="${{ github.base_ref }}"
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF" HEAD -- '*.php' | xargs)
         else
-          # Para PUSHES, comparamos com o commit anterior (HEAD^1)
-          echo "Executando git diff para Push..."
           if git rev-parse --verify HEAD^1 &>/dev/null; then
             CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD -- '*.php' | xargs)
           else
-            # Primeiro commit ou sem historico, pega todos os arquivos .php
-            echo "Primeiro commit ou sem historico, listando todos os arquivos .php..."
             CHANGED_FILES=$(find . -name "*.php" -type f | xargs)
           fi
         fi
         
-        # O 'xargs' acima converte quebras de linha em espaços, o que é bom.
-
-        echo "Arquivos PHP modificados brutos (git diff): $CHANGED_FILES"
-        
         if [ -z "$CHANGED_FILES" ]; then
-          echo "Nenhum arquivo PHP modificado encontrado por git diff."
+          echo "Nenhum arquivo PHP modificado encontrado."
           echo "changed_files_list=" >> "$GITHUB_OUTPUT"
           echo "any_changed=false" >> "$GITHUB_OUTPUT"
         else
-          echo "Arquivos PHP modificados formatados para script.py: $CHANGED_FILES"
+          echo "Arquivos PHP modificados detectados: $CHANGED_FILES"
           echo "changed_files_list=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
           echo "any_changed=true" >> "$GITHUB_OUTPUT"
         fi
-        echo "## Fim Debugging Git Diff ##"
 
     - name: Run PHP Security Analysis on changed files
-      # Agora a condição usa o output do nosso passo "Get changed PHP files (Using Git Diff)"
       if: steps.changed-php-files.outputs.any_changed == 'true'
       run: |
-        echo "## Iniciando Analise de Seguranca ##" # ADICIONADO DEBUG
+        echo "## Iniciando Analise de Seguranca ##"
         MODIFIED_PHP_FILES="${{ steps.changed-php-files.outputs.changed_files_list }}"
         
-        echo "Argumentos passados para script.py: $MODIFIED_PHP_FILES --no-report" # ADICIONADO DEBUG
+        echo "Arquivos PHP sendo analisados: $MODIFIED_PHP_FILES"
         
-        # Verifica se a lista de arquivos não está vazia (redundante, mas seguro)
-        if [ -z "$MODIFIED_PHP_FILES" ]; then
-          echo "Erro: Nenhum arquivo PHP para analisar recebido. Isso nao deveria acontecer se any_changed for 'true'."
-          exit 1 # Falha se nao receber arquivos
-        fi
-
-        # Chama seu script principal, passando os arquivos modificados
-        python script.py $MODIFIED_PHP_FILES --no-report
+        # Chama seu script principal. Se nao houver vulnerabilidades, o script.py
+        # NAO VAI CRIAR A PASTA REPORT/ por causa da logica de nao gerar relatorios vazios.
+        # Por isso, vamos sempre gerar relatorios aqui no CI/CD para que o artefato exista.
+        python script.py $MODIFIED_PHP_FILES # REMOVENDO --no-report para SEMPRE gerar relatorios no CI/CD
 
         echo "Script de analise finalizado com o codigo de saida: $?"
         exit $?
@@ -97,12 +76,12 @@ jobs:
         echo "Nenhum arquivo PHP modificado encontrado para analisar. Pulando a analise de seguranca."
 
     - name: Upload Security Report Artifacts
-      if: success() && steps.changed-php-files.outputs.any_changed == 'true'
+      # Condição para o upload:
+      # 1. O passo de analise rodou (any_changed == 'true').
+      # 2. O passo de analise foi bem-sucedido.
+      # 3. A pasta 'report/' realmente existe e nao esta vazia.
+      if: success() && steps.changed-php-files.outputs.any_changed == 'true' && success('ls report/')
       uses: actions/upload-artifact@v4
       with:
         name: security-scan-reports
         path: report/
-        # Adiciona um check para garantir que a pasta report/ nao esta vazia
-        # Isso evita o aviso "No files were found with the provided path: report/" se nao houver vulnerabilidades
-        # e, portanto, nenhum relatorio gerado.
-        if: success() && steps.changed-php-files.outputs.any_changed == 'true' && success('ls report/')
