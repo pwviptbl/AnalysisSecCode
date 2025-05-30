@@ -1,10 +1,27 @@
 import os
 import sys
-from datetime import datetime 
+from datetime import datetime
+
+# Importa as classes que criamos
 from config import Configuracao
 from analyzers.detector import VulnerabilidadeDetector
-from analyzers.vulnerability import Vulnerability 
-from report_generator import Relatorio 
+from analyzers.vulnerability import Vulnerability
+from report_generator import Relatorio
+
+# Função para coletar arquivos PHP de um caminho (arquivo ou diretório)
+def collect_php_files_from_path(path: str) -> list[str]:
+    php_files = []
+    if os.path.isfile(path) and path.lower().endswith('.php'):
+        # Se o caminho for um arquivo PHP, adiciona ele mesmo
+        php_files.append(path)
+    elif os.path.isdir(path):
+        # Se o caminho for um diretório, percorre ele e adiciona todos os arquivos PHP
+        for root, _, files in os.walk(path):
+            for file in files:
+                if file.lower().endswith('.php'):
+                    php_files.append(os.path.join(root, file))
+    return php_files
+
 
 class AnalisadorEstatico:
     """
@@ -43,17 +60,21 @@ class AnalisadorEstatico:
         else:
             print(f"Nenhuma vulnerabilidade encontrada em {file_path}.")
 
-    def analisar_multiplos_arquivos_php(self, file_paths: list, generate_reports: bool = True) -> list: # NOVO PARÂMETRO E RETORNO
+    def analisar_multiplos_arquivos_php(self, file_paths: list, generate_reports: bool = True) -> list:
         """
         Analisa uma lista de arquivos PHP em busca de vulnerabilidades.
         Se generate_reports for True, gera os relatórios HTML/PDF.
         Retorna a lista de todas as vulnerabilidades encontradas.
         """
         self.relatorio.vulnerabilities = []
+        
+        if not file_paths:
+            print("Nenhum arquivo para analisar. Abortando.")
+            return []
+
         for file_path in file_paths:
             self.analisar_arquivo_php(file_path)
         
-        # Gerar relatórios SOMENTE se generate_reports for True E se houver vulnerabilidades
         if generate_reports and self.relatorio.get_vulnerabilities():
             self._gerar_relatorios_finais()
         elif not self.relatorio.get_vulnerabilities():
@@ -61,7 +82,8 @@ class AnalisadorEstatico:
         else:
             print("Opção 'gerar relatórios' desativada. Relatórios não gerados.")
 
-        return self.relatorio.get_vulnerabilities() # Retorna as vulnerabilidades para a GUI
+        return self.relatorio.get_vulnerabilities()
+
 
     def _gerar_relatorios_finais(self):
         """
@@ -75,46 +97,51 @@ class AnalisadorEstatico:
         self.relatorio.gerar_pdf(f"{report_name_base}.pdf")
         print(f"Relatórios gerados com sucesso na pasta: {self.relatorio.output_dir}")
 
+
 # Bloco de execução principal (simula a interface de linha de comando ou CI/CD)
 if __name__ == "__main__":
     vul_config_json_path = os.path.join(os.path.dirname(__file__), 'Vul', 'php_vulnerabilities.json')
     output_report_dir = "report"
     analisador = AnalisadorEstatico(vul_config_json_path, output_dir=output_report_dir)
 
-    file_paths_to_analyze = []
-    generate_reports_final = True # Valor padrão para a análise
+    input_paths_from_cli = []
+    generate_reports_final = True
 
-    # 1. Processar argumentos da linha de comando
+    # Processar argumentos da linha de comando
     if len(sys.argv) > 1:
-        # Verifica a opção --no-report
         if "--no-report" in sys.argv:
             generate_reports_final = False
             sys.argv.remove("--no-report")
 
-        # Pega os caminhos dos arquivos restantes
-        file_paths_to_analyze = sys.argv[1:]
+        input_paths_from_cli = sys.argv[1:] # Pega todos os argumentos restantes
+        
+        if not input_paths_from_cli: # Se não houver caminhos após remover --no-report
+            print("Erro: Nenhum arquivo ou diretório para analisar fornecido.")
+            print("Uso: python script.py <caminho_do_arquivo_ou_diretorio> [outro_caminho...] [--no-report]")
+            sys.exit(1) # Sai com erro se nao houver caminhos
 
-        if not file_paths_to_analyze:
-            print("Uso: python script.py <caminho_do_arquivo> [caminho_do_outro_arquivo...] [--no-report]")
-            sys.exit(1)
+        # Coleta todos os arquivos PHP dos caminhos fornecidos (podem ser arquivos ou diretórios)
+        actual_files_to_analyze = []
+        for p in input_paths_from_cli:
+            if not os.path.exists(p):
+                print(f"Aviso: Caminho '{p}' não encontrado. Ignorando.", file=sys.stderr)
+                continue
+            collected = collect_php_files_from_path(p)
+            if not collected:
+                print(f"Aviso: Nenhum arquivo PHP encontrado em '{p}'. Ignorando.", file=sys.stderr)
+            actual_files_to_analyze.extend(collected)
+        
+        if not actual_files_to_analyze:
+            print("Erro: Nenhum arquivo PHP válido encontrado para análise nos caminhos fornecidos. Abortando.")
+            print("Uso: python script.py <caminho_do_arquivo_ou_diretorio> [outro_caminho...] [--no-report]")
+            sys.exit(1) # Sai com erro se nao encontrar arquivos PHP
 
-        print(f"Modo de linha de comando: Analisando {len(file_paths_to_analyze)} arquivo(s).")
+        print(f"Modo de linha de comando: Analisando {len(actual_files_to_analyze)} arquivo(s).")
+        analisador.analisar_multiplos_arquivos_php(actual_files_to_analyze, generate_reports=generate_reports_final)
     else:
-        # Modo de teste padrão (sem argumentos): Analisa o arquivo de teste_vul.php
-        print("Modo de teste padrão: Analisando 'test_files/test_vul.php'.")
-        test_file_path = os.path.join(os.path.dirname(__file__), 'test_files', 'test_vul.php')
-        file_paths_to_analyze = [test_file_path]
-        
-        # 2. SE não houver argumentos de linha de comando para relatórios, PERGUNTAR ao usuário
-        resposta = input("Deseja gerar relatórios HTML/PDF? (s/n): ").lower().strip()
-        if resposta == 'n':
-            generate_reports_final = False
-        elif resposta != 's':
-            print("Resposta inválida. Assumindo 'sim' para a geração de relatórios.")
-            generate_reports_final = True # Valor padrão se a resposta não for 's' ou 'n'
+        # Se não houver argumentos na linha de comando, exibe o uso e sai
+        print("Uso: python script.py <caminho_do_arquivo_ou_diretorio> [outro_caminho...] [--no-report]")
+        print("Nenhum arquivo ou diretório para análise fornecido. Abortando.")
+        sys.exit(1) # Sai com erro
 
-
-    # Executa a análise com base nos arquivos e na decisão de gerar relatórios
-    analisador.analisar_multiplos_arquivos_php(file_paths_to_analyze, generate_reports=generate_reports_final)
-        
     print("\nAnálise concluída.")
