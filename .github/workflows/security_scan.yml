@@ -80,7 +80,17 @@ jobs:
       # 1. O passo de analise rodou (any_changed == 'true').
       # 2. O passo de analise foi bem-sucedido.
       # 3. A pasta 'report/' realmente existe e nao esta vazia.
-      if: success() && steps.changed-php-files.outputs.any_changed == 'true' && success('ls report/')
+       if: |
+        success() &&
+        steps.changed-php-files.outputs.any_changed == 'true' &&
+        # Para verificar se a pasta report/ existe e nao esta vazia, precisamos de um passo anterior para criar um output
+        # ou simplificar a condicao. Vamos simplificar para o que e mais comum e funciona.
+        # A forma 'success('ls report/')' não funciona diretamente no 'if'.
+        # O mais comum é verificar se a pasta foi criada pelo passo anterior.
+        # Se seu script.py cria a pasta report/ mesmo que vazia, entao a condicao ja e mais simples.
+        # Vamos assumir que seu script.py cria a pasta report/ e que o upload e desejado se a analise foi OK.
+        steps.changed-php-files.outputs.changed_files_list != '' # Se nao ha arquivos, nao ha relatorios
+
       uses: actions/upload-artifact@v4
       with:
         name: security-scan-reports
