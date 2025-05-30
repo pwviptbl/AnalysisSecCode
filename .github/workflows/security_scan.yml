@@ -28,7 +28,7 @@ jobs:
 
     - name: Get changed PHP files # NOVO PASSO: Identifica os arquivos PHP que mudaram
       id: changed-files # ID para referenciar a saída deste passo
-      uses: tj-actions/changed-files@v4 # Action para detectar arquivos modificados
+      uses: tj-actions/changed-files@v3 # Action para detectar arquivos modificados
       with:
         files: | # Filtra para buscar apenas arquivos PHP
           **/*.php
