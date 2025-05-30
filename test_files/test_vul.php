@@ -5,7 +5,7 @@
  *
  * @param mixed $var The variable to be outputted.
  */
-test('Hello World');
+eval('echo "Hello World";');
 function test($var) {
     mysql_query();
     echo $var;
