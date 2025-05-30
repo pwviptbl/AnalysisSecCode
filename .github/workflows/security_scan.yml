@@ -16,77 +16,93 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        # Fetch all history for changed-files logic (important for git diff)
-        # depth: 0 fetches full history; depth: 2 fetches current and previous commit
-        fetch-depth: 0
+        fetch-depth: 0 # Manter para o git diff ter histórico completo
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.13' # Mantenha sua versao do Python
+        python-version: '3.13'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install Jinja2 reportlab
 
-    - name: Get changed PHP files (Using Git Diff) # NOVO: Abordagem nativa Git
-      id: changed-php-files # Novo ID
+    - name: Get changed PHP files (Using Git Diff) - DEBUG # ADICIONADO DEBUG
+      id: changed-php-files
       run: |
-        # Para PULL REQUESTS, comparamos com a base (main branch)
+        echo "## Debugging Git Diff ##"
+        echo "Event Name: ${{ github.event_name }}"
+        echo "Base Ref (for PRs): ${{ github.base_ref }}"
+        echo "Head Ref (for PRs): ${{ github.head_ref }}"
+        echo "SHA do commit atual (HEAD): ${{ github.sha }}"
+
+        CHANGED_FILES=""
+        
         if [ "${{ github.event_name }}" == "pull_request" ]; then
-          BASE_REF="${{ github.base_ref }}"
-          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF" HEAD -- '*.php')
+          # Para PRs, comparamos com a base (branch para onde o PR será feito)
+          echo "Executando git diff para Pull Request..."
+          CHANGED_FILES=$(git diff --name-only "origin/${{ github.base_ref }}" HEAD -- '*.php' | xargs)
         else
           # Para PUSHES, comparamos com o commit anterior (HEAD^1)
-          # Verifica se e o primeiro commit (sem HEAD^1)
+          echo "Executando git diff para Push..."
           if git rev-parse --verify HEAD^1 &>/dev/null; then
-            CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD -- '*.php')
+            CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD -- '*.php' | xargs)
           else
-            # No primeiro commit, considera todos os arquivos PHP como novos
-            CHANGED_FILES=$(find . -name "*.php" -type f)
+            # Primeiro commit ou sem historico, pega todos os arquivos .php
+            echo "Primeiro commit ou sem historico, listando todos os arquivos .php..."
+            CHANGED_FILES=$(find . -name "*.php" -type f | xargs)
           fi
         fi
         
-        # Filtra por arquivos PHP (ja esta no git diff -- '*.php') e garante que nao esta vazio
+        # O 'xargs' acima converte quebras de linha em espaços, o que é bom.
+
+        echo "Arquivos PHP modificados brutos (git diff): $CHANGED_FILES"
+        
         if [ -z "$CHANGED_FILES" ]; then
-          echo "Nenhum arquivo PHP modificado encontrado."
-          echo "changed_files_list=" >> "$GITHUB_OUTPUT" # Output vazio
-          echo "any_changed=false" >> "$GITHUB_OUTPUT" # Output para indicar que nao ha mudancas
+          echo "Nenhum arquivo PHP modificado encontrado por git diff."
+          echo "changed_files_list=" >> "$GITHUB_OUTPUT"
+          echo "any_changed=false" >> "$GITHUB_OUTPUT"
         else
-          # Converte a lista de arquivos (separados por nova linha) para um formato adequado para o script
-          # Substitui novas linhas por espacos, para que o script.py receba como argumentos separados
-          CHANGED_FILES_SPACE_SEPARATED=$(echo "$CHANGED_FILES" | tr '\n' ' ')
-          echo "Arquivos PHP modificados detectados: $CHANGED_FILES_SPACE_SEPARATED"
-          echo "changed_files_list=$CHANGED_FILES_SPACE_SEPARATED" >> "$GITHUB_OUTPUT"
+          echo "Arquivos PHP modificados formatados para script.py: $CHANGED_FILES"
+          echo "changed_files_list=$CHANGED_FILES" >> "$GITHUB_OUTPUT"
           echo "any_changed=true" >> "$GITHUB_OUTPUT"
         fi
+        echo "## Fim Debugging Git Diff ##"
 
     - name: Run PHP Security Analysis on changed files
       # Agora a condição usa o output do nosso passo "Get changed PHP files (Using Git Diff)"
       if: steps.changed-php-files.outputs.any_changed == 'true'
       run: |
-        echo "Iniciando a analise de seguranca PHP nos arquivos modificados..."
-        # Pega a lista de arquivos do output do passo anterior
+        echo "## Iniciando Analise de Seguranca ##" # ADICIONADO DEBUG
         MODIFIED_PHP_FILES="${{ steps.changed-php-files.outputs.changed_files_list }}"
         
-        echo "Arquivos PHP sendo analisados: $MODIFIED_PHP_FILES"
+        echo "Argumentos passados para script.py: $MODIFIED_PHP_FILES --no-report" # ADICIONADO DEBUG
         
+        # Verifica se a lista de arquivos não está vazia (redundante, mas seguro)
+        if [ -z "$MODIFIED_PHP_FILES" ]; then
+          echo "Erro: Nenhum arquivo PHP para analisar recebido. Isso nao deveria acontecer se any_changed for 'true'."
+          exit 1 # Falha se nao receber arquivos
+        fi
+
         # Chama seu script principal, passando os arquivos modificados
         python script.py $MODIFIED_PHP_FILES --no-report
 
         echo "Script de analise finalizado com o codigo de saida: $?"
         exit $?
 
-    - name: No PHP files changed or found # Este passo será executado se nenhum arquivo PHP mudou
+    - name: No PHP files changed or found
       if: steps.changed-php-files.outputs.any_changed == 'false'
       run: |
         echo "Nenhum arquivo PHP modificado encontrado para analisar. Pulando a analise de seguranca."
 
     - name: Upload Security Report Artifacts
-      # Este passo só é executado se a análise foi bem-sucedida E se 'any_changed' for true (ou seja, se a análise rodou de fato)
       if: success() && steps.changed-php-files.outputs.any_changed == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: security-scan-reports
         path: report/
+        # Adiciona um check para garantir que a pasta report/ nao esta vazia
+        # Isso evita o aviso "No files were found with the provided path: report/" se nao houver vulnerabilidades
+        # e, portanto, nenhum relatorio gerado.
+        if: success() && steps.changed-php-files.outputs.any_changed == 'true' && success('ls report/')
