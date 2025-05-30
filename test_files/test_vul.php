@@ -10,9 +10,7 @@ function test($var) {
     mysql_query();
     echo $var;
 }
-
 test('Hello World');
-
 eval('echo "Hello World";');
 $command = 'ls';
 exec($command);
