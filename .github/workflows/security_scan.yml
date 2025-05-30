@@ -44,7 +44,7 @@ jobs:
 
     - name: Upload Security Report Artifacts
       if: success() # Este passo so e executado se o passo anterior (security_scan) foi bem-sucedido
-      uses: actions/upload-artifact@v3 # Uma action do GitHub para subir artefatos
+      uses: actions/upload-artifact@v4 # Uma action do GitHub para subir artefatos
       with:
         name: security-scan-reports # Nome do ZIP que sera gerado com os relatorios
         path: report/ # A pasta onde seus relatorios HTML/PDF sao salvos
