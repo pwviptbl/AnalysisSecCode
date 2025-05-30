@@ -1,5 +1,5 @@
 <?php
-
+ 
 function test($var) {
     mysql_query();
     echo $var;
