@@ -1,0 +1,50 @@
+name: PHP Security Scan CI/CD
+
+on:
+  push:
+    branches:
+      - main # Dispara o workflow sempre que houver um push para a branch 'main'
+
+  pull_request:
+    branches:
+      - main # Dispara o workflow para cada Pull Request aberto ou atualizado na branch 'main'
+
+jobs:
+  security_analysis:
+    runs-on: ubuntu-latest # O sistema operacional do ambiente virtual do GitHub Actions (Linux)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3 # Pega o seu código do repositório para o ambiente do runner
+
+    - name: Set up Python
+      uses: actions/setup-python@v4 # Configura o ambiente Python
+      with:
+        python-version: '3.13' # <-- MUDE AQUI PARA A VERSÃO DO SEU PYTHON (ex: '3.10', '3.11', '3.12')
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip # Atualiza o pip
+        pip install Jinja2 reportlab # Instala as bibliotecas que seu projeto usa (Jinja2 e ReportLab)
+        # Se você tiver um requirements.txt (RECOMENDADO), use:
+        # pip install -r requirements.txt
+
+    - name: Run PHP Security Analysis
+      id: security_scan
+      run: |
+        echo "Iniciando a analise de seguranca PHP..."
+        # Chama seu script principal, passando o arquivo de teste.
+        # Use '--no-report' se quiser que o relatorio seja baixado como artefato APENAS.
+        # Remova '--no-report' se quiser que o script gere o relatorio tambem no log da action.
+        python script.py test_files/test_vul.php --no-report # ou test_files/test_vul.php para gerar relatorio no log
+
+        # Captura o status de saida do seu script (0 para sucesso, >0 para erro)
+        echo "Script de analise finalizado com o codigo de saida: $?"
+        exit $? # Garante que a etapa falhe se o seu script.py falhar
+
+    - name: Upload Security Report Artifacts
+      if: success() # Este passo so e executado se o passo anterior (security_scan) foi bem-sucedido
+      uses: actions/upload-artifact@v3 # Uma action do GitHub para subir artefatos
+      with:
+        name: security-scan-reports # Nome do ZIP que sera gerado com os relatorios
+        path: report/ # A pasta onde seus relatorios HTML/PDF sao salvos
