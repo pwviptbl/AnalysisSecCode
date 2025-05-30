@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Executes a MySQL query and outputs the provided variable.
+ *
+ * @param mixed $var The variable to be outputted.
+ */
+
 function test($var) {
     mysql_query();
     echo $var;
