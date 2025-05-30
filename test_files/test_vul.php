@@ -5,7 +5,7 @@
  *
  * @param mixed $var The variable to be outputted.
  */
-
+test('Hello World');
 function test($var) {
     mysql_query();
     echo $var;
@@ -15,6 +15,7 @@ eval('echo "Hello World";');
 $command = 'ls';
 exec($command);
 
+eval('echo "Hello World";');
 $user_input = $_GET['name'];
 echo "Bem vindo, " . $user_input;
 ?>
