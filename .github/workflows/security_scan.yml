@@ -3,71 +3,90 @@ name: PHP Security Scan CI/CD
 on:
   push:
     branches:
-      - main # Dispara o workflow em push para a branch 'main'
+      - main
   pull_request:
     branches:
-      - main # Dispara o workflow para Pull Requests na branch 'main'
+      - main
 
 jobs:
   security_analysis:
-    runs-on: ubuntu-latest # Ambiente de execução no Linux
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3 # Pega o seu código
+      uses: actions/checkout@v3
+      with:
+        # Fetch all history for changed-files logic (important for git diff)
+        # depth: 0 fetches full history; depth: 2 fetches current and previous commit
+        fetch-depth: 0
 
     - name: Set up Python
-      uses: actions/setup-python@v4 # Configura o ambiente Python
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.13' # Certifique-se de que esta é a sua versão exata do Python
+        python-version: '3.13' # Mantenha sua versao do Python
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install Jinja2 reportlab # Instala as bibliotecas que seu projeto usa
+        pip install Jinja2 reportlab
 
-    - name: Get changed PHP files # NOVO PASSO: Identifica os arquivos PHP que mudaram
-      id: changed-files # ID para referenciar a saída deste passo
-      uses: tj-actions/changed-files@v3 # Action para detectar arquivos modificados
-      with:
-        files: | # Filtra para buscar apenas arquivos PHP
-          **/*.php
-
-    - name: Run PHP Security Analysis on changed files
-      # Este passo só executa se houver algum arquivo PHP que foi modificado
-      if: steps.changed-files.outputs.any_changed == 'true'
+    - name: Get changed PHP files (Using Git Diff) # NOVO: Abordagem nativa Git
+      id: changed-php-files # Novo ID
       run: |
-        echo "Iniciando a analise de seguranca PHP nos arquivos modificados..."
-        # Pega a lista de todos os arquivos PHP modificados (separados por espaço)
-        MODIFIED_PHP_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
-
-        # Verifica se a lista de arquivos nao esta vazia
-        if [ -z "$MODIFIED_PHP_FILES" ]; then
-          echo "Nenhum arquivo PHP modificado para analisar."
-          exit 0 # Sai com sucesso se nao houver arquivos PHP para analisar
+        # Para PULL REQUESTS, comparamos com a base (main branch)
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          BASE_REF="${{ github.base_ref }}"
+          CHANGED_FILES=$(git diff --name-only "origin/$BASE_REF" HEAD -- '*.php')
+        else
+          # Para PUSHES, comparamos com o commit anterior (HEAD^1)
+          # Verifica se e o primeiro commit (sem HEAD^1)
+          if git rev-parse --verify HEAD^1 &>/dev/null; then
+            CHANGED_FILES=$(git diff --name-only HEAD^1 HEAD -- '*.php')
+          else
+            # No primeiro commit, considera todos os arquivos PHP como novos
+            CHANGED_FILES=$(find . -name "*.php" -type f)
+          fi
+        fi
+        
+        # Filtra por arquivos PHP (ja esta no git diff -- '*.php') e garante que nao esta vazio
+        if [ -z "$CHANGED_FILES" ]; then
+          echo "Nenhum arquivo PHP modificado encontrado."
+          echo "changed_files_list=" >> "$GITHUB_OUTPUT" # Output vazio
+          echo "any_changed=false" >> "$GITHUB_OUTPUT" # Output para indicar que nao ha mudancas
+        else
+          # Converte a lista de arquivos (separados por nova linha) para um formato adequado para o script
+          # Substitui novas linhas por espacos, para que o script.py receba como argumentos separados
+          CHANGED_FILES_SPACE_SEPARATED=$(echo "$CHANGED_FILES" | tr '\n' ' ')
+          echo "Arquivos PHP modificados detectados: $CHANGED_FILES_SPACE_SEPARATED"
+          echo "changed_files_list=$CHANGED_FILES_SPACE_SEPARATED" >> "$GITHUB_OUTPUT"
+          echo "any_changed=true" >> "$GITHUB_OUTPUT"
         fi
 
-        echo "Arquivos PHP modificados detectados: $MODIFIED_PHP_FILES"
+    - name: Run PHP Security Analysis on changed files
+      # Agora a condição usa o output do nosso passo "Get changed PHP files (Using Git Diff)"
+      if: steps.changed-php-files.outputs.any_changed == 'true'
+      run: |
+        echo "Iniciando a analise de seguranca PHP nos arquivos modificados..."
+        # Pega a lista de arquivos do output do passo anterior
+        MODIFIED_PHP_FILES="${{ steps.changed-php-files.outputs.changed_files_list }}"
         
-        # Chama seu script principal, passando APENAS os arquivos modificados
-        # e a flag --no-report (pois os relatórios serão baixados como artefatos)
+        echo "Arquivos PHP sendo analisados: $MODIFIED_PHP_FILES"
+        
+        # Chama seu script principal, passando os arquivos modificados
         python script.py $MODIFIED_PHP_FILES --no-report
 
-        # Captura o status de saída do seu script (0 para sucesso, >0 para erro)
         echo "Script de analise finalizado com o codigo de saida: $?"
-        exit $? # Garante que a etapa falhe se o seu script.py falhar
+        exit $?
 
-    - name: No PHP files changed or found
-      if: steps.changed-files.outputs.any_changed == 'false'
+    - name: No PHP files changed or found # Este passo será executado se nenhum arquivo PHP mudou
+      if: steps.changed-php-files.outputs.any_changed == 'false'
       run: |
         echo "Nenhum arquivo PHP modificado encontrado para analisar. Pulando a analise de seguranca."
 
     - name: Upload Security Report Artifacts
-      # Este passo só é executado se a análise foi bem-sucedida
-      if: success()
-      uses: actions/upload-artifact@v4 # Versão 4 da action para upload de artefatos
+      # Este passo só é executado se a análise foi bem-sucedida E se 'any_changed' for true (ou seja, se a análise rodou de fato)
+      if: success() && steps.changed-php-files.outputs.any_changed == 'true'
+      uses: actions/upload-artifact@v4
       with:
         name: security-scan-reports
-        path: report/ # A pasta onde seus relatórios HTML/PDF são salvos
-        # Se nao houver vulnerabilidades e, portanto, nenhum relatorio gerado, o ZIP estara vazio.
-        # Ou você pode adicionar uma condição aqui para só subir se a pasta report/ existir e não estiver vazia.
+        path: report/
