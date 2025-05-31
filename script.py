@@ -5,7 +5,7 @@ from datetime import datetime
 # Importa as classes que criamos
 from config import Configuracao
 from analyzers.detector import DetectorVulnerabilidade
-from analyzers.vulnerability import Vulnerability
+from analyzers.vulnerability import Vulnerabilidade
 from report_generator import GeradorRelatorio 
 
 # Função para coletar arquivos PHP de um caminho (arquivo ou diretório)

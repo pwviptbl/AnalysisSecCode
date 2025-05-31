@@ -1,7 +1,7 @@
 import re
 import sys
 from config import Configuracao
-from analyzers.vulnerability import Vulnerability
+from analyzers.vulnerability import Vulnerabilidade
 
 class DetectorVulnerabilidade:
     """
@@ -17,7 +17,7 @@ class DetectorVulnerabilidade:
         e as armazena em um dicionário para uso eficiente.
         """
         compiled = {}
-        for details in self.configuracao.get_all_vulnerability_patterns():
+        for details in self.configuracao.obter_todos_padroes_vulnerabilidades():
             vul_name = details.get('vulnerability', 'Desconhecida') 
             pattern_str = details.get('pattern', '')
             if pattern_str:
@@ -29,16 +29,16 @@ class DetectorVulnerabilidade:
                 print(f"Aviso: Padrão regex não encontrado para a vulnerabilidade '{vul_name}'.", file=sys.stderr)
         return compiled
 
-    def analyze_php_code(self, php_code: str, file_path: str) -> list[Vulnerability]:
+    def analyze_php_code(self, php_code: str, file_path: str) -> list[Vulnerabilidade]:
         """
         Analisa o código PHP fornecido em busca de vulnerabilidades.
-        Retorna uma lista de objetos Vulnerability encontrados.
+        Retorna uma lista de objetos Vulnerabilidade encontrados.
         """
         found_vulnerabilities = []
         lines = php_code.splitlines()
 
         for vul_name, compiled_pattern in self.compiled_patterns.items():
-            vul_details = self.configuracao.get_vulnerability_pattern(vul_name)
+            vul_details = self.configuracao.obter_padrao_vulnerabilidade(vul_name)
             
             message = vul_details.get('message', 'Nenhuma mensagem disponível')
             severity = vul_details.get('severity', 'Desconhecida')
@@ -50,7 +50,7 @@ class DetectorVulnerabilidade:
                     code_snippet = line_content.strip() 
 
                     found_vulnerabilities.append(
-                        Vulnerability(
+                        Vulnerabilidade(
                             vul_type=vul_name, 
                             description=message,
                             severity=severity,

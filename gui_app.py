@@ -2,9 +2,8 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import threading
-import subprocess # Adicionar para abrir pasta no Linux/macOS, se necessário
+import subprocess
 
-# Importa a classe AnalisadorEstatico
 from script import AnalisadorEstatico
 
 class SecurityAnalyzerGUI:
@@ -13,7 +12,6 @@ class SecurityAnalyzerGUI:
         master.title("Analisador de Vulnerabilidades PHP")
         master.geometry("800x600")
 
-        # Configurações iniciais do AnalisadorEstático
         vul_config_json_path = os.path.join(os.path.dirname(__file__), 'Vul', 'php_vulnerabilities.json')
         output_report_dir = "report"
 
@@ -26,7 +24,6 @@ class SecurityAnalyzerGUI:
 
         self.selected_files = []
 
-        # --- Frames para organização ---
         self.top_frame = tk.Frame(master, padx=10, pady=10)
         self.top_frame.pack(fill=tk.X)
 
@@ -36,7 +33,6 @@ class SecurityAnalyzerGUI:
         self.bottom_frame = tk.Frame(master, padx=10, pady=10)
         self.bottom_frame.pack(fill=tk.X, side=tk.BOTTOM)
 
-        # --- Widgets no top_frame (Seleção de Arquivos) ---
         self.label_files = tk.Label(self.top_frame, text="Arquivos Selecionados:")
         self.label_files.pack(anchor=tk.W)
 
@@ -49,11 +45,9 @@ class SecurityAnalyzerGUI:
         self.btn_clear_files = tk.Button(self.top_frame, text="Limpar Lista", command=self.clear_files)
         self.btn_clear_files.pack(side=tk.LEFT, padx=5)
         
-        # --- Widgets no middle_frame (Área de Log/Resultados) ---
-        self.label_output = tk.Label(self.middle_frame, text="Log de Análise:")
+        self.label_output = tk.Label(self.middle_frame, text="Sugestão:")
         self.label_output.pack(anchor=tk.W)
 
-        # Criar um Text widget com Scrollbar para o log
         self.text_output_frame = tk.Frame(self.middle_frame)
         self.text_output_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -64,12 +58,10 @@ class SecurityAnalyzerGUI:
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.text_output.config(yscrollcommand=self.scrollbar.set)
 
-        # --- Checkbox para gerar relatórios (NOVO) ---
-        self.generate_reports_var = tk.BooleanVar(value=True) # Valor padrão: gerar relatórios
+        self.generate_reports_var = tk.BooleanVar(value=True)
         self.chk_generate_reports = tk.Checkbutton(self.bottom_frame, text="Gerar Relatórios (HTML/PDF)", variable=self.generate_reports_var)
         self.chk_generate_reports.pack(side=tk.LEFT, padx=5)
 
-        # --- Widgets no bottom_frame (Botões de Ação) ---
         self.btn_analyze = tk.Button(self.bottom_frame, text="Iniciar Análise", command=self.start_analysis_thread, bg="green", fg="white")
         self.btn_analyze.pack(side=tk.LEFT, padx=5)
 
@@ -80,9 +72,9 @@ class SecurityAnalyzerGUI:
         """Método auxiliar para adicionar mensagens ao Text widget."""
         self.text_output.config(state=tk.NORMAL)
         self.text_output.insert(tk.END, message + "\n", color)
-        self.text_output.see(tk.END) # Auto-scroll
+        self.text_output.see(tk.END)
         self.text_output.config(state=tk.DISABLED)
-        # Configura as tags de cor
+
         self.text_output.tag_config("red", foreground="red")
         self.text_output.tag_config("orange", foreground="orange")
         self.text_output.tag_config("green", foreground="green")
@@ -119,13 +111,13 @@ class SecurityAnalyzerGUI:
         self.btn_add_files.config(state=tk.DISABLED)
         self.btn_clear_files.config(state=tk.DISABLED)
         self.btn_open_reports.config(state=tk.DISABLED)
-        self.chk_generate_reports.config(state=tk.DISABLED) # Desabilita checkbox durante análise
+        self.chk_generate_reports.config(state=tk.DISABLED) 
 
         self.text_output.config(state=tk.NORMAL)
         self.text_output.delete(1.0, tk.END)
         self.text_output.config(state=tk.DISABLED)
         
-        self._log_message("Iniciando análise de segurança...\n", "blue") # Cor para mensagem inicial
+        self._log_message("Iniciando análise de segurança...\n", "blue")
         
         analysis_thread = threading.Thread(target=self.run_analysis)
         analysis_thread.start()
@@ -134,15 +126,6 @@ class SecurityAnalyzerGUI:
         try:
             self._log_message(f"Analisando {len(self.selected_files)} arquivo(s)...")
             
-            # Chama o método de análise da classe AnalisadorEstatico
-            # Passa a opção de gerar relatórios
-            # A classe AnalisadorEstatico precisa ser modificada para aceitar essa opção
-            
-            # Alteração temporária para mostrar output no log da GUI
-            # Criar um método no AnalisadorEstatico que retorne as vulnerabilidades para o GUI
-            # Ou passar uma função de callback para o AnalisadorEstatico
-            
-            # Opção 1: Fazer o AnalisadorEstatico retornar as vulnerabilidades e GUI processa
             vulnerabilities_found_overall = self.analyzer.analisar_multiplos_arquivos_php(
                 self.selected_files,
                 generate_reports=self.generate_reports_var.get() # Passa a opção
@@ -179,18 +162,18 @@ class SecurityAnalyzerGUI:
             self.btn_analyze.config(state=tk.NORMAL, text="Iniciar Análise")
             self.btn_add_files.config(state=tk.NORMAL)
             self.btn_clear_files.config(state=tk.NORMAL)
-            self.chk_generate_reports.config(state=tk.NORMAL) # Reabilita checkbox
+            self.chk_generate_reports.config(state=tk.NORMAL) 
             self.btn_open_reports.config(state=tk.NORMAL if self.generate_reports_var.get() and vulnerabilities_found_overall else tk.DISABLED) # Ativa se relatórios foram gerados
             
     def open_reports_folder(self):
         report_path = self.analyzer.diretorio_saida
         if os.path.exists(report_path):
             try:
-                os.startfile(report_path) # Para Windows
+                os.startfile(report_path) 
             except AttributeError:
                 if os.sys.platform == "darwin":
                     subprocess.Popen(["open", report_path])
-                else: # Para Linux
+                else:
                     subprocess.Popen(["xdg-open", report_path])
             except Exception as e:
                 messagebox.showerror("Erro", f"Não foi possível abrir a pasta de relatórios: {e}")

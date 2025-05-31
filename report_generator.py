@@ -1,6 +1,6 @@
 import os
 from typing import List
-from analyzers.vulnerability import Vulnerability 
+from analyzers.vulnerability import Vulnerabilidade 
 from datetime import datetime
 
 # Para geração de HTML e PDF, você precisaria instalar Jinja2 e ReportLab:
@@ -30,7 +30,7 @@ class GeradorRelatorio :
     Gerencia e gera relatórios de vulnerabilidades encontradas.
     """
     def __init__(self, diretorio_saida: str = "report"):
-        self.vulnerabilities: List[Vulnerability] = []
+        self.vulnerabilities: List[Vulnerabilidade] = []
         self.diretorio_saida = diretorio_saida
         os.makedirs(self.diretorio_saida, exist_ok=True)
 
@@ -43,13 +43,13 @@ class GeradorRelatorio :
                 print(f"Aviso: Pasta de templates '{template_path}' não encontrada. A geração de relatórios HTML pode falhar.", file=os.sys.stderr)
 
 
-    def adicionar_vulnerabilidade(self, vulnerability: Vulnerability):
+    def adicionar_vulnerabilidade(self, vulnerability: Vulnerabilidade):
         """
         Adiciona uma vulnerabilidade à lista para o relatório.
         """
         self.vulnerabilities.append(vulnerability)
 
-    def get_vulnerabilities(self) -> List[Vulnerability]:
+    def get_vulnerabilities(self) -> List[Vulnerabilidade]:
         """
         Retorna a lista de vulnerabilidades adicionadas.
         """
@@ -102,7 +102,7 @@ class GeradorRelatorio :
             else:
                 for vul in self.vulnerabilities:
                     story.append(Paragraph(f"<b>Tipo:</b> {vul.type}", styles['Normal']))
-                    story.append(Paragraph(f"<b>Severidade:</b> <font color='{self._get_severity_color(vul.severity)}'>{vul.severity}</font>", styles['Normal']))
+                    story.append(Paragraph(f"<b>Severidade:</b> <font color='{self._obter_cor_severidade(vul.severity)}'>{vul.severity}</font>", styles['Normal']))
                     story.append(Paragraph(f"<b>Arquivo:</b> {vul.file_name}", styles['Normal'])) 
                     story.append(Paragraph(f"<b>Linha:</b> {vul.line}", styles['Normal']))
                     story.append(Paragraph(f"<b>Descrição:</b> {vul.description}", styles['Normal']))
@@ -118,7 +118,7 @@ class GeradorRelatorio :
             print(f"Erro ao gerar relatório PDF: {e}", file=os.sys.stderr)
             return False
 
-    def _get_severity_color(self, severity: str) -> str:
+    def _obter_cor_severidade(self, severity: str) -> str:
         """Retorna uma cor HTML baseada na severidade para PDF."""
         severity_map = {
             "Crítica": colors.red,
@@ -133,9 +133,9 @@ class GeradorRelatorio :
 
 if __name__ == "__main__":
     # Para testar, vamos criar algumas vulnerabilidades de exemplo
-    from analyzers.vulnerability import Vulnerability
+    from analyzers.vulnerability import Vulnerabilidade
 
-    vul1 = Vulnerability(
+    vul1 = Vulnerabilidade(
         vul_type="SQL Injection",
         description="Parâmetro 'id' vulnerável a SQL Injection via $_GET.",
         severity="Alta",
@@ -143,7 +143,7 @@ if __name__ == "__main__":
         code_snippet="$query = 'SELECT * FROM users WHERE id = ' . $_GET['id'];",
         suggestion="Use prepared statements com PDO ou MySQLi."
     )
-    vul2 = Vulnerability(
+    vul2 = Vulnerabilidade(
         vul_type="Cross-Site Scripting (XSS)",
         description="Saída não sanitizada de dados de usuário.",
         severity="Média",
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         code_snippet="echo $_POST['username'];",
         suggestion="Aplique htmlspecialchars() à saída de dados de usuário."
     )
-    vul3 = Vulnerability(
+    vul3 = Vulnerabilidade(
         vul_type="Code Injection (eval/exec)",
         description="Uso perigoso da função eval().",
         severity="Crítica",

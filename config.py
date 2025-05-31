@@ -9,9 +9,9 @@ class Configuracao:
     def __init__(self, vulnerabilities_config_path: str):
         self.vulnerabilities_config_path = vulnerabilities_config_path
         self.patterns = {}  # Dicionário para armazenar os padrões de vulnerabilidades
-        self.load_configurations()
+        self._carregar_configuracoes()
 
-    def load_configurations(self):
+    def _carregar_configuracoes(self):
         """
         Carrega os padrões de vulnerabilidades do arquivo JSON especificado.
         """
@@ -30,14 +30,14 @@ class Configuracao:
             print(f"Erro ao carregar configurações de vulnerabilidades de '{self.vulnerabilities_config_path}': {e}", file=sys.stderr)
             sys.exit(1)
 
-    def get_vulnerability_pattern(self, vulnerability_name: str) -> dict:
+    def obter_padrao_vulnerabilidade(self, vulnerability_name: str) -> dict:
         """
         Retorna os detalhes de um padrão de vulnerabilidade pelo seu nome.
         Retorna um dicionário vazio se o padrão não for encontrado.
         """
         return self.patterns.get(vulnerability_name, {})
 
-    def get_all_vulnerability_patterns(self) -> list:
+    def obter_todos_padroes_vulnerabilidades(self) -> list:
         """
         Retorna todos os padrões de vulnerabilidades carregados como uma lista.
         """
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         print(f"  Sugestão: {details.get('suggestion', 'N/A')}")
     
     print("\nDetalhes de 'SQL Injection':")
-    sql_vul = config.get_vulnerability_pattern('SQL Injection')
+    sql_vul = config.obter_padrao_vulnerabilidade('SQL Injection')
     if sql_vul:
         print(f"  Mensagem: {sql_vul.get('message', 'N/A')}")
     else:
