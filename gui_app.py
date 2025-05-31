@@ -18,7 +18,7 @@ class SecurityAnalyzerGUI:
         output_report_dir = "report"
 
         try:
-            self.analyzer = AnalisadorEstatico(vul_config_json_path, output_dir=output_report_dir)
+            self.analyzer = AnalisadorEstatico(vul_config_json_path, diretorio_saida=output_report_dir)
         except Exception as e:
             messagebox.showerror("Erro de Inicialização", f"Não foi possível inicializar o analisador: {e}")
             master.destroy()
@@ -183,7 +183,7 @@ class SecurityAnalyzerGUI:
             self.btn_open_reports.config(state=tk.NORMAL if self.generate_reports_var.get() and vulnerabilities_found_overall else tk.DISABLED) # Ativa se relatórios foram gerados
             
     def open_reports_folder(self):
-        report_path = self.analyzer.output_dir
+        report_path = self.analyzer.diretorio_saida
         if os.path.exists(report_path):
             try:
                 os.startfile(report_path) # Para Windows

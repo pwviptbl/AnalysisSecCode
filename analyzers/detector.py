@@ -3,7 +3,7 @@ import sys
 from config import Configuracao
 from analyzers.vulnerability import Vulnerability
 
-class VulnerabilidadeDetector:
+class DetectorVulnerabilidade:
     """
     Detecta vulnerabilidades em código PHP utilizando padrões definidos na configuração.
     """
@@ -61,9 +61,3 @@ class VulnerabilidadeDetector:
                         )
                     )
         return found_vulnerabilities
-
-# O bloco main() de teste será removido daqui, a orquestração será feita por AnalisadorEstatico em script.py.
-# Por enquanto, mantemos um stub ou removemos completamente para evitar duplicação ou confusão.
-# Para manter a simplicidade e focar na estrutura de classes, o bloco de teste
-# 'if __name__ == "__main__":' que estava em php_vul.py será removido deste arquivo.
-# Seu teste agora será feito via script.py.

@@ -4,9 +4,9 @@ from datetime import datetime
 
 # Importa as classes que criamos
 from config import Configuracao
-from analyzers.detector import VulnerabilidadeDetector
+from analyzers.detector import DetectorVulnerabilidade
 from analyzers.vulnerability import Vulnerability
-from report_generator import Relatorio
+from report_generator import GeradorRelatorio 
 
 # Função para coletar arquivos PHP de um caminho (arquivo ou diretório)
 def collect_php_files_from_path(path: str) -> list[str]:
@@ -28,11 +28,11 @@ class AnalisadorEstatico:
     Orquestra o processo de análise estática de código PHP,
     detectando vulnerabilidades e gerando relatórios.
     """
-    def __init__(self, vul_config_path: str, output_dir: str = "report"):
+    def __init__(self, vul_config_path: str, diretorio_saida: str = "report"):
         self.configuracao = Configuracao(vul_config_path)
-        self.detector = VulnerabilidadeDetector(self.configuracao)
-        self.relatorio = Relatorio(output_dir)
-        self.output_dir = output_dir
+        self.detector = DetectorVulnerabilidade(self.configuracao)
+        self.relatorio = GeradorRelatorio (diretorio_saida)
+        self.diretorio_saida = diretorio_saida
 
     def analisar_arquivo_php(self, file_path: str):
         """
@@ -95,14 +95,14 @@ class AnalisadorEstatico:
 
         self.relatorio.gerar_html(f"{report_name_base}.html")
         self.relatorio.gerar_pdf(f"{report_name_base}.pdf")
-        print(f"Relatórios gerados com sucesso na pasta: {self.relatorio.output_dir}")
+        print(f"Relatórios gerados com sucesso na pasta: {self.relatorio.diretorio_saida}")
 
 
-# Bloco de execução principal (simula a interface de linha de comando ou CI/CD)
+# Bloco de execução principal (interface de linha de comando ou CI/CD)
 if __name__ == "__main__":
     vul_config_json_path = os.path.join(os.path.dirname(__file__), 'Vul', 'php_vulnerabilities.json')
     output_report_dir = "report"
-    analisador = AnalisadorEstatico(vul_config_json_path, output_dir=output_report_dir)
+    analisador = AnalisadorEstatico(vul_config_json_path, diretorio_saida=output_report_dir)
 
     input_paths_from_cli = []
     generate_reports_final = True
@@ -120,7 +120,7 @@ if __name__ == "__main__":
             print("Uso: python script.py <caminho_do_arquivo_ou_diretorio> [outro_caminho...] [--no-report]")
             sys.exit(1) # Sai com erro se nao houver caminhos
 
-        # Coleta todos os arquivos PHP dos caminhos fornecidos (podem ser arquivos ou diretórios)
+        # Coleta todos os arquivos PHP dos caminhos fornecidos (arquivos ou diretórios)
         actual_files_to_analyze = []
         for p in input_paths_from_cli:
             if not os.path.exists(p):

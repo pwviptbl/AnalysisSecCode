@@ -25,14 +25,14 @@ except ImportError:
     print("Aviso: ReportLab não encontrado. A geração de relatórios PDF não estará disponível.", file=os.sys.stderr)
 
 
-class Relatorio:
+class GeradorRelatorio :
     """
     Gerencia e gera relatórios de vulnerabilidades encontradas.
     """
-    def __init__(self, output_dir: str = "report"):
+    def __init__(self, diretorio_saida: str = "report"):
         self.vulnerabilities: List[Vulnerability] = []
-        self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+        self.diretorio_saida = diretorio_saida
+        os.makedirs(self.diretorio_saida, exist_ok=True)
 
         self.template_env = None
         if JINJA2_AVAILABLE:
@@ -73,7 +73,7 @@ class Relatorio:
                                            report_title="Relatório de Análise de Vulnerabilidades PHP",
                                            report_datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S")) 
 
-            output_file_path = os.path.join(self.output_dir, filename)
+            output_file_path = os.path.join(self.diretorio_saida, filename)
             with open(output_file_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
             print(f"Relatório HTML gerado em: {output_file_path}")
@@ -92,7 +92,7 @@ class Relatorio:
             return False
 
         try:
-            output_file_path = os.path.join(self.output_dir, filename)
+            output_file_path = os.path.join(self.diretorio_saida, filename)
             doc = SimpleDocTemplate(output_file_path, pagesize=letter)
             styles = getSampleStyleSheet()
             story = []
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     )
 
     # Cria uma instância do Relatorio
-    relatorio = Relatorio(output_dir="report_test")
+    relatorio = GeradorRelatorio (diretorio_saida="report_test")
     relatorio.adicionar_vulnerabilidade(vul1)
     relatorio.adicionar_vulnerabilidade(vul2)
     relatorio.adicionar_vulnerabilidade(vul3)
